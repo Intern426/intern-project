@@ -37,8 +37,8 @@ public class App {
     public static void main(String[] args) {
         String connectionString = System.getenv("AZURE_APPCONFIG");
         if (connectionString == null || connectionString.isEmpty()) {
-            System.err.println("Environment variable AZURE_APPCONFIG is not set. Cannot connect to App Configuration." +
-                " Please set it.");
+            System.err.println("Environment variable AZURE_APPCONFIG is not set. Cannot connect to App Configuration."
+                + " Please set it.");
             return;
         }
         ConfigurationAsyncClient client;

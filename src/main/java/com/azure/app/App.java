@@ -5,7 +5,6 @@ package com.azure.app;
 
 import com.azure.data.appconfiguration.ConfigurationAsyncClient;
 import com.azure.data.appconfiguration.credentials.ConfigurationClientCredentials;
-import com.azure.data.appconfiguration.models.ConfigurationSetting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -36,8 +35,13 @@ public class App {
      * @param args Arguments to the library program.
      */
     public static void main(String[] args) {
+        String connectionString = System.getenv("AZURE_APPCONFIG");
+        if (connectionString == null || connectionString.isEmpty()) {
+            System.err.println("Environment variable AZURE_APPCONFIG is not set. Cannot connect to App Configuration." +
+                " Please set it.");
+            return;
+        }
         ConfigurationAsyncClient client;
-        ConfigurationSetting setting = null;
         try {
             client = ConfigurationAsyncClient.builder()
                 .credentials(new ConfigurationClientCredentials(System.getenv("AZURE_APPCONFIG")))

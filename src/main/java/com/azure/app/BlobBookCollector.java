@@ -3,6 +3,7 @@
 
 package com.azure.app;
 
+import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.data.appconfiguration.ConfigurationAsyncClient;
 import com.azure.data.appconfiguration.credentials.ConfigurationClientCredentials;
 import com.azure.data.appconfiguration.models.ConfigurationSetting;
@@ -75,6 +76,7 @@ public class BlobBookCollector implements BookCollection {
                 return StorageClient.storageClientBuilder()
                     .endpoint(endPoint)
                     .credential(credential)
+                    .httpLogDetailLevel(HttpLogDetailLevel.HEADERS)
                     .buildAsyncClient();
             });
             bookContainerClient = storageClient.flatMap(container -> {
@@ -142,7 +144,7 @@ public class BlobBookCollector implements BookCollection {
     private Mono<Void> saveImage(File imagePath, Author author, String title) {
         String extension = FilenameUtils.getExtension(imagePath.getName());
         if (!supportedImageFormats.contains(extension)) {
-            return Mono.error(new IllegalStateException("Error. Wrong file formtat for image"));
+            return Mono.error(new IllegalStateException("Error. Wrong file format for image"));
         }
         String[] blobInfo = getBlobInformation(author, title + "." + extension);
         if (blobInfo == null) {
@@ -177,17 +179,31 @@ public class BlobBookCollector implements BookCollection {
                 saveBook(newBook.getTitle(), newBook.getAuthor(), newBook.getCover()));
         } else {
             String[] blobConversion = getBlobInformation(oldBook.getAuthor(), oldBook.getTitle());
-            Mono<BlobItem> file = imageContainerClient.flatMapMany(containerAsyncClient ->
+            Flux<BlobItem> file = imageContainerClient.flatMapMany(containerAsyncClient ->
                 containerAsyncClient.listBlobsFlat().filter(blobItem -> blobItem.name().contains(blobConversion[2] + "/"
                     + blobConversion[1]
-                    + "/" + blobConversion[0] + "."))).elementAt(0);
+                    + "/" + blobConversion[0] + ".")));
+            Mono<BlobItem> bookMono = file.hasElements().flatMap(notEmpty -> {
+                if (notEmpty)
+                    return file.elementAt(0);
+                else {
+                    return Mono.error(new IllegalStateException("Cover image not found."));
+                }
+            });
             return imageContainerClient.flatMap(containerAsyncClient ->
-                file.flatMap(blobItem -> {
+                bookMono.flatMap(blobItem -> {
                     final BlockBlobAsyncClient blockBlob = containerAsyncClient.getBlockBlobAsyncClient(blobItem.name());
                     String property = "java.io.tmpdir";
                     String tempDir = System.getProperty(property);
-                    File newFile = new File(tempDir + blobItem.name().
-                        substring(blobItem.name().lastIndexOf("/") + 1));
+                    String newFileName;
+                    try {
+                        newFileName = URLEncoder.encode(newBook.getTitle(), StandardCharsets.US_ASCII.toString());
+                    } catch (UnsupportedEncodingException e) {
+                        logger.error("Error encoding file: ", e);
+                        return Mono.error(e);
+                    }
+                    String extension = blobItem.name().substring(blobItem.name().lastIndexOf("."));
+                    File newFile = new File(tempDir + newFileName + extension);
                     try {
                         newFile.createNewFile();
                     } catch (IOException e) {
@@ -211,13 +227,23 @@ public class BlobBookCollector implements BookCollection {
     @Override
     public Mono<Void> deleteBook(Book book) {
         String[] blobConversion = getBlobInformation(book.getAuthor(), book.getTitle());
-        return deleteImage(book).then(bookContainerClient.flatMap(containerAsyncClient -> {
+        Mono<BlobItem> file = bookContainerClient.flatMapMany(containerAsyncClient
+            -> containerAsyncClient.listBlobsFlat().filter(blobItem ->
+            blobItem.name().contains(blobConversion[2] + "/"
+                + blobConversion[1]
+                + "/" + blobConversion[0]))).elementAt(0);
+        return bookContainerClient.flatMap(containerAsyncClient ->
+            file.flatMap(blobItem -> {
+                final BlockBlobAsyncClient blob = containerAsyncClient.getBlockBlobAsyncClient(blobItem.name());
+                return blob.delete().then();
+            }));
+      /*  return deleteImage(book).then(bookContainerClient.flatMap(containerAsyncClient -> {
                 final BlockBlobAsyncClient blob = containerAsyncClient.getBlockBlobAsyncClient(blobConversion[2] + "/"
                     + blobConversion[1]
                     + "/" + blobConversion[0] + ".json");
                 return blob.delete().then();
             }
-        ));
+        ));*/
     }
 
     private Mono<Void> deleteImage(Book book) {

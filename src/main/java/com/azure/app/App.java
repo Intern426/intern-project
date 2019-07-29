@@ -63,7 +63,7 @@ public class App {
         do {
             showMenu();
             String option = SCANNER.nextLine();
-            choice = OPTION_CHECKER.checkOption(option, 5);
+            choice = OPTION_CHECKER.checkOption(option, 6);
             switch (choice) {
                 case 1:
                     listBooks().block();
@@ -99,7 +99,7 @@ public class App {
                     break;
             }
             System.out.println("------------------------------------------------");
-        } while (choice != 5);
+        } while (choice != 6);
     }
 
     private static Mono<String> edit() {
@@ -290,7 +290,7 @@ public class App {
     }
 
     private static Mono<Book> grabBook(String modifier) {
-        System.out.printf("Please enter the title of the book %s: ", modifier.contentEquals("delete") ?
+        System.out.printf("Please enter the title of the book %s:\n", modifier.contentEquals("delete") ?
             "to delete" : "to edit");
         Flux<Book> booksToDelete = bookCollector.findBook(SCANNER.nextLine());
         return booksToDelete.collectList().map(list -> {

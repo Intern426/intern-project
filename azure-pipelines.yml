@@ -36,6 +36,3 @@ steps:
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
   env:
      AZURE_APPCONFIG: '$(AZURE_APPCONFIG)'
-
-
-

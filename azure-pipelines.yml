@@ -35,4 +35,4 @@ steps:
     publishJUnitResults: true
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
   env:
-    AZURE_APPCONFIG: '$(APP_CONFIGURATION)'
+    AZURE_APPCONFIG: '$(APP_CONFIGURATIO)'

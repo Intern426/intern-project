@@ -22,14 +22,6 @@ steps:
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.8'
     jdkArchitectureOption: 'x64'
-- powershell: |
-    # Using an input-macro:
-    Write-Host "This works: $(AZURE_APPCONFIG)"
-
-    # Using the mapped env var:
-    Write-Host "This works: $env:MY_MAPPED_ENV_VAR"    # Recommended
-  env:
-    MY_MAPPED_ENV_VAR: '$(AZURE_APPCONFIG)'
 
 - task: Maven@3
   displayName: 'Run tests'
@@ -42,3 +34,5 @@ steps:
     jdkArchitectureOption: 'x64'
     publishJUnitResults: true
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
+  env:
+    AZURE_APPCONFIG: '$(APP_CONFIGURATION)'

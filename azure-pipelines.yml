@@ -24,10 +24,7 @@ steps:
     jdkArchitectureOption: 'x64'
 - powershell: |
     # Using an input-macro:
-    Write-Host "This works: '$(AZURE_APPCONFIG)''"
-
-    # Using the env var directly:
-    Write-Host "This does not work: $env:MYSECRET"
+    Write-Host "This works: $(AZURE_APPCONFIG)"
 
     # Using the mapped env var:
     Write-Host "This works: $env:MY_MAPPED_ENV_VAR"    # Recommended
